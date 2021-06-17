@@ -1,7 +1,7 @@
 import express, { response } from "express";
 import cors from "cors";
 import pg from "pg";
-import validation from "./validation.js";
+import validationGames from "./validationGames.js";
 
 const app = express();
 
@@ -53,11 +53,20 @@ app.post("/categories", async (req, res) => {
 app.get("/games", async (req, res) => {
   try {
     if (!req.query.name) {
-      const list = await connection.query("SELECT * FROM games");
-      res.send(list);
+      const list = await connection.query(`
+        SELECT games.*, categories.name AS "categoryName"
+        FROM games JOIN categories
+        ON games."categoryId" = categories.id
+      `);
+      res.send(list.rows);
     } else {
       const list = await connection.query(
-        "SELECT * FROM games WHERE name LIKE '$1'",
+        `
+        SELECT games.*, categories.name AS "categoryName"
+        FROM games JOIN categories
+        ON games."categoryId" = categories.id
+        WHERE games.name ILIKE ($1 || '%')
+      `,
         [req.query.name]
       );
       res.send(list.rows);
@@ -70,7 +79,7 @@ app.get("/games", async (req, res) => {
 app.post("/games", async (req, res) => {
   try {
     const game = req.body;
-    if (validation(game)) {
+    if (validationGames(game, connection)) {
       const contain = await connection.query(
         "SELECT * FROM games WHERE name = $1",
         [req.body.name]
