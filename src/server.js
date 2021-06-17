@@ -102,6 +102,47 @@ app.post("/games", async (req, res) => {
   }
 });
 
+app.get("/customers", async (req, res) => {
+  try {
+    if (!req.query.cpf) {
+      const customers = await connection.query(`
+        SELECT * 
+        FROM customers`);
+      res.send(customers.rows);
+    } else {
+      const customers = await connection.query(
+        `
+        SELECT * 
+        FROM customers
+        WHERE cpf ILIKE ($1 || '%')`,
+        [req.query.cpf]
+      );
+      res.send(
+        customers.rows.length === 0
+          ? `Não possui cpf iniciado com ${req.query.cpf}`
+          : customers.rows
+      );
+    }
+  } catch {
+    res.sendStatus(500);
+  }
+});
+
+app.get("/customers/:id", async (req, res) => {
+  try {
+    const customer = await connection.query(
+      `SELECT * FROM customers WHERE id = $1`,
+      [req.params.id]
+    );
+    if (!customer.rows.length) {
+      res.sendStatus(404);
+    }
+    res.send(customer.rows[0]);
+  } catch {
+    res.sendStatus(500);
+  }
+});
+
 app.listen(4000, () => {
   console.log("Server listening on port 4000!!");
 });
