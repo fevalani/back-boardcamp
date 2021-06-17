@@ -27,7 +27,28 @@ app.get("/categories", async (req, res) => {
   }
 });
 
-app.post("/categories", async (req, res) => {});
+app.post("/categories", async (req, res) => {
+  try {
+    if (!req.body.name.trim()) {
+      res.status(400).send("Nome vazio!!");
+    } else {
+      const contain = await connection.query(
+        "SELECT name FROM categories WHERE name = $1",
+        [req.body.name]
+      );
+      if (!contain.rows.length === 0) {
+        res.sendStatus(409);
+      } else {
+        await connection.query("INSERT INTO categories (name) VALUES ($1)", [
+          req.body.name,
+        ]);
+        res.sendStatus(201);
+      }
+    }
+  } catch (err) {
+    res.sendStatus(500);
+  }
+});
 
 app.listen(4000, () => {
   console.log("Server listening on port 4000!!");
