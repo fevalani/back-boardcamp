@@ -1,7 +1,7 @@
-import express from "express";
+import express, { response } from "express";
 import cors from "cors";
 import pg from "pg";
-import Joi from "joi";
+import validation from "./validation.js";
 
 const app = express();
 
@@ -44,6 +44,49 @@ app.post("/categories", async (req, res) => {
         ]);
         res.sendStatus(201);
       }
+    }
+  } catch (err) {
+    res.sendStatus(500);
+  }
+});
+
+app.get("/games", async (req, res) => {
+  try {
+    if (!req.query.name) {
+      const list = await connection.query("SELECT * FROM games");
+      res.send(list);
+    } else {
+      const list = await connection.query(
+        "SELECT * FROM games WHERE name LIKE '$1'",
+        [req.query.name]
+      );
+      res.send(list.rows);
+    }
+  } catch (err) {
+    res.sendStatus(500);
+  }
+});
+
+app.post("/games", async (req, res) => {
+  try {
+    const game = req.body;
+    if (validation(game)) {
+      const contain = await connection.query(
+        "SELECT * FROM games WHERE name = $1",
+        [req.body.name]
+      );
+      if (contain.rowCount === 0) {
+        const { name, image, stockTotal, categoryId, pricePerDay } = game;
+        await connection.query(
+          'INSERT INTO games (name, image, "stockTotal", "categoryId", "pricePerDay") VALUES ($1,$2,$3,$4,$5)',
+          [name, image, stockTotal, categoryId, pricePerDay]
+        );
+        res.sendStatus(201);
+      } else {
+        res.sendStatus(409);
+      }
+    } else {
+      res.sendStatus(400);
     }
   } catch (err) {
     res.sendStatus(500);
