@@ -2,6 +2,7 @@ import express, { response } from "express";
 import cors from "cors";
 import pg from "pg";
 import validationGames from "./validationGames.js";
+import validationCustomer from "./validationCustomer.js";
 
 const app = express();
 
@@ -138,6 +139,20 @@ app.get("/customers/:id", async (req, res) => {
       res.sendStatus(404);
     }
     res.send(customer.rows[0]);
+  } catch {
+    res.sendStatus(500);
+  }
+});
+
+app.post("/customers", async (req, res) => {
+  try {
+    if (!validationCustomer(req.body, connection)) {
+      const existCpf = await connection.query(`SELECT cpf FROM customers`);
+      if (existCpf.rows.includes(req.body.cpf)) {
+        res.sendStatus(201);
+      }
+    }
+    res.sendStatus(404);
   } catch {
     res.sendStatus(500);
   }
