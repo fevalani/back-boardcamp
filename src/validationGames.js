@@ -27,5 +27,5 @@ export default async function validationGame(
 
   const ids = await connection.query("SELECT id FROM categories");
   check = ids.rows.map((item) => item.id).includes(categoryId);
-  return false;
+  return check;
 }

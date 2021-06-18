@@ -4,6 +4,8 @@ import pg from "pg";
 import validationGames from "./validationGames.js";
 import validationCustomer from "./validationCustomer.js";
 
+//pg.types.setTypeParser(1082, (str) => str);
+
 const app = express();
 
 app.use(express.json());
@@ -23,8 +25,8 @@ app.get("/categories", async (req, res) => {
   try {
     const result = await connection.query("SELECT * FROM categories");
     res.send(result.rows);
-  } catch (err) {
-    res.send(err);
+  } catch {
+    res.sendStatus(500);
   }
 });
 
@@ -37,7 +39,7 @@ app.post("/categories", async (req, res) => {
         "SELECT name FROM categories WHERE name = $1",
         [req.body.name]
       );
-      if (!contain.rows.length === 0) {
+      if (!!contain.rows.length) {
         res.sendStatus(409);
       } else {
         await connection.query("INSERT INTO categories (name) VALUES ($1)", [
@@ -55,9 +57,9 @@ app.get("/games", async (req, res) => {
   try {
     if (!req.query.name) {
       const list = await connection.query(`
-        SELECT games.*, categories.name AS "categoryName"
-        FROM games JOIN categories
-        ON games."categoryId" = categories.id
+      SELECT games.*, categories.name AS "categoryName"
+      FROM games JOIN categories
+      ON games."categoryId" = categories.id
       `);
       res.send(list.rows);
     } else {
@@ -146,13 +148,49 @@ app.get("/customers/:id", async (req, res) => {
 
 app.post("/customers", async (req, res) => {
   try {
-    if (!validationCustomer(req.body, connection)) {
+    if (validationCustomer(req.body)) {
       const existCpf = await connection.query(`SELECT cpf FROM customers`);
-      if (existCpf.rows.includes(req.body.cpf)) {
+      if (existCpf.rows.map((item) => item.cpf).includes(req.body.cpf)) {
+        res.sendStatus(409);
+      } else {
+        const { name, phone, cpf, birthday } = req.body;
+        await connection.query(
+          `
+            INSERT INTO customer (name,phone,cpf,birthday)
+            VALUES ($1,$2,$3,$4)
+        `,
+          [name, phone, cpf, birthday]
+        );
         res.sendStatus(201);
       }
+    } else {
+      res.sendStatus(400);
     }
-    res.sendStatus(404);
+  } catch {
+    res.sendStatus(500);
+  }
+});
+
+app.put("/customers/:id", async (req, res) => {
+  try {
+    if (validationCustomer(req.body)) {
+      const existCpf = await connection.query(
+        `SELECT cpf FROM customers WHERE id <> $1`,
+        [req.params.id]
+      );
+      if (existCpf.rows.map((item) => item.cpf).includes(re.body.cpf)) {
+        res.sendStatus(409);
+      } else {
+        const { name, phone, cpf, birthday } = req.body;
+        await connection.query(
+          `UPDATE customers SET name=$1, phone=$2, cpf=$3, birthday=$4 WHERE id = $5`,
+          [name, phone, cpf, birthday, req.params.id]
+        );
+        res.sendStatus(200);
+      }
+    } else {
+      res.sendStatus(400);
+    }
   } catch {
     res.sendStatus(500);
   }
