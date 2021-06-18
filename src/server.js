@@ -1,8 +1,10 @@
-import express, { response } from "express";
+import express from "express";
 import cors from "cors";
 import pg from "pg";
 import validationGames from "./validationGames.js";
 import validationCustomer from "./validationCustomer.js";
+import validationRental from "./validationRental.js";
+import dayjs from "dayjs";
 
 //pg.types.setTypeParser(1082, (str) => str);
 
@@ -156,7 +158,7 @@ app.post("/customers", async (req, res) => {
         const { name, phone, cpf, birthday } = req.body;
         await connection.query(
           `
-            INSERT INTO customer (name,phone,cpf,birthday)
+            INSERT INTO customers (name,phone,cpf,birthday)
             VALUES ($1,$2,$3,$4)
         `,
           [name, phone, cpf, birthday]
@@ -209,7 +211,7 @@ app.get("/rentals", async (req, res) => {
       `,
         [req.query.customerId]
       );
-      res.send(request);
+      res.send(request.rows);
     } else if (!!req.query.gameId) {
       const request = await connection.query(
         `
@@ -221,7 +223,7 @@ app.get("/rentals", async (req, res) => {
       `,
         [req.query.gameId]
       );
-      res.send(request);
+      res.send(request.rows);
     }
     const request = await connection.query(`
       SELECT rentals.*, customers AS customer, games AS game
@@ -229,7 +231,30 @@ app.get("/rentals", async (req, res) => {
       JOIN customers ON rentals."customerId" = customers.id
       JOIN games ON rentals."gameId" = games.id
     `);
-    res.send(request);
+    res.send(request.rows);
+  } catch {
+    res.sendStatus(500);
+  }
+});
+
+app.post("/rentals", async (req, res) => {
+  try {
+    const { customerId, gameId, daysRented } = req.body;
+    if (validationRental(req.body, connection)) {
+      const request = await connection.query(
+        `
+      SELECT * FROM games WHERE games.id = $1
+    `,
+        [gameId]
+      );
+      req.body.rentDate = dayjs().format("YYYY-MM-DD");
+      req.body.originalPrice = request.rows.pricePerDay * daysRented;
+      req.body.returnDate = null;
+      req.body.delayFee = null;
+      console.log(req.body);
+    } else {
+      res.sendStatus(400);
+    }
   } catch {
     res.sendStatus(500);
   }
