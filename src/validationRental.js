@@ -4,7 +4,7 @@ export default async function validationRental(
 ) {
   if (daysRented > 0) {
     const gamesRented = await connection.query(
-      `SELECT COUNT(id) FROM rentals WHERE "returnDate" = null AND "gameId" = $1`,
+      `SELECT COUNT(id) FROM rentals WHERE "returnDate" IS NULL AND "gameId" = $1`,
       [gameId]
     );
     const stock = await connection.query(
