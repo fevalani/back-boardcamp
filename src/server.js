@@ -196,6 +196,45 @@ app.put("/customers/:id", async (req, res) => {
   }
 });
 
+app.get("/rentals", async (req, res) => {
+  try {
+    if (!!req.query.customerId) {
+      const request = await connection.query(
+        `
+        SELECT rentals.*, customers AS customer, games AS game
+        FROM rentals 
+        JOIN customers ON rentals."customerId" = customers.id
+        JOIN games ON rentals."gameId" = games.id
+        WHERE "customerId" = $1
+      `,
+        [req.query.customerId]
+      );
+      res.send(request);
+    } else if (!!req.query.gameId) {
+      const request = await connection.query(
+        `
+        SELECT rentals.*, customers AS customer, games AS game
+        FROM rentals 
+        JOIN customers ON rentals."customerId" = customers.id
+        JOIN games ON rentals."gameId" = games.id
+        WHERE "gameId" = $1
+      `,
+        [req.query.gameId]
+      );
+      res.send(request);
+    }
+    const request = await connection.query(`
+      SELECT rentals.*, customers AS customer, games AS game
+      FROM rentals 
+      JOIN customers ON rentals."customerId" = customers.id
+      JOIN games ON rentals."gameId" = games.id
+    `);
+    res.send(request);
+  } catch {
+    res.sendStatus(500);
+  }
+});
+
 app.listen(4000, () => {
   console.log("Server listening on port 4000!!");
 });
