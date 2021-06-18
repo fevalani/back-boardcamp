@@ -296,42 +296,42 @@ app.post("/rentals", async (req, res) => {
 app.post("/rentals/:id/return", async (req, res) => {
   try {
     const id = req.params.id;
-    const idExists = await connection.query(
-      `SELECT id FROM rentals WHERE id = $1 AND "returnDate" IS NULL`,
+    const rental = await connection.query(
+      `SELECT * FROM rentals WHERE id = $1`,
       [id]
     );
-    if (!!idExists.rows[0]) {
-      const rental = await connection.query(
-        `
-      SELECT * FROM rentals WHERE id = $1
-      `,
-        [id]
-      );
+    if (!!rental.rows[0]) {
+      if (rental.rows[0].returnDate !== null) {
+        res.sendStatus(400);
+      }
       const returnDate = dayjs().format("YYYY-MM-DD");
+      let delayFee;
+
       if (
         dayjs().diff(dayjs(rental.rows[0].rentDate), "day") -
           rental.rows[0].daysRented >
         0
       ) {
-        const delayFee =
+        delayFee =
           ((dayjs().diff(dayjs(rental.rows[0].rentDate), "day") -
             rental.rows[0].daysRented) *
             rental.rows[0].originalPrice) /
           rental.rows[0].daysRented;
       } else {
-        const delayFee = 0;
+        delayFee = 0;
       }
       await connection.query(
         `
         UPDATE rentals 
-        SET "returnDate" = $1
-        AND "delayFee" = $2
+        SET "returnDate" = $1,
+        "delayFee" = $2
         WHERE id = $3
       `,
         [returnDate, delayFee, id]
       );
+      res.sendStatus(200);
     } else {
-      res.sendStatus(400);
+      res.sendStatus(404);
     }
   } catch {
     res.sendStatus(500);
