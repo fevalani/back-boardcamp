@@ -21,7 +21,7 @@ export default async function validationRental(
         `,
           [customerId, gameId]
         );
-        if (!!rowCount) {
+        if (rowCount) {
           return true;
         }
         return false;

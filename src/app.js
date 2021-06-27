@@ -1,25 +1,15 @@
 import express from "express";
 import cors from "cors";
-import pg from "pg";
 import validationGames from "./validationGames.js";
 import validationCustomer from "./validationCustomer.js";
 import validationRental from "./validationRental.js";
 import dayjs from "dayjs";
+import connection from "./database.js";
 
 const app = express();
 
 app.use(express.json());
 app.use(cors());
-
-const { Pool } = pg;
-
-const connection = new Pool({
-  user: "postgres",
-  password: "123456",
-  host: "localhost",
-  port: 5432,
-  database: "boardcamp",
-});
 
 app.get("/categories", async (req, res) => {
   try {
